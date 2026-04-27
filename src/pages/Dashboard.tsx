@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   collection,
   query,
@@ -13,7 +13,11 @@ import {
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { useAuth } from "@/contexts/AuthContext";
+import { subscribeUser } from "@/lib/premium";
+import { formatBRLInput, parseBRL } from "@/lib/format";
 import { toast } from "sonner";
+import PremiumModal from "@/components/PremiumModal";
+import AIAdvisor from "@/components/AIAdvisor";
 import {
   Wallet,
   LogOut,
@@ -27,6 +31,8 @@ import {
   PieChart,
   ArrowDownCircle,
   ArrowUpCircle,
+  Calendar,
+  Activity,
 } from "lucide-react";
 
 type TxType = "income" | "expense";
@@ -51,10 +57,12 @@ const Dashboard = () => {
   const { user, logout } = useAuth();
   const [txs, setTxs] = useState<Tx[]>([]);
   const [type, setType] = useState<TxType>("expense");
-  const [amount, setAmount] = useState("");
+  const [amountMasked, setAmountMasked] = useState("");
   const [desc, setDesc] = useState("");
   const [cat, setCat] = useState(CATEGORIES.expense[0]);
   const [busy, setBusy] = useState(false);
+  const [premium, setPremium] = useState(false);
+  const [showPremium, setShowPremium] = useState(false);
 
   useEffect(() => {
     if (!user) return;
@@ -66,15 +74,19 @@ const Dashboard = () => {
     const unsub = onSnapshot(
       q,
       (snap) => {
-        setTxs(
-          snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Tx[]
-        );
+        setTxs(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Tx[]);
       },
       (err) => {
         console.error(err);
         toast.error("Erro ao carregar transações");
       }
     );
+    return unsub;
+  }, [user]);
+
+  useEffect(() => {
+    if (!user) return;
+    const unsub = subscribeUser(user.uid, (u) => setPremium(!!u.premium));
     return unsub;
   }, [user]);
 
@@ -86,10 +98,31 @@ const Dashboard = () => {
   const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
 
+  // This month stats
+  const thisMonth = useMemo(() => {
+    const now = new Date();
+    const m = txs.filter((t) => {
+      const d = t.createdAt?.toDate();
+      return d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+    });
+    const inc = m.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
+    const exp = m.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
+    return { count: m.length, inc, exp };
+  }, [txs]);
+
+  const topCategory = useMemo(() => {
+    const map: Record<string, number> = {};
+    txs.filter((t) => t.type === "expense").forEach((t) => {
+      map[t.category] = (map[t.category] ?? 0) + t.amount;
+    });
+    const top = Object.entries(map).sort((a, b) => b[1] - a[1])[0];
+    return top ? { name: top[0], value: top[1] } : null;
+  }, [txs]);
+
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
-    const a = parseFloat(amount);
+    const a = parseBRL(amountMasked);
     if (!a || a <= 0) return toast.error("Valor inválido");
     if (!desc.trim()) return toast.error("Adicione uma descrição");
     setBusy(true);
@@ -102,7 +135,7 @@ const Dashboard = () => {
         category: cat,
         createdAt: serverTimestamp(),
       });
-      setAmount("");
+      setAmountMasked("");
       setDesc("");
       toast.success(type === "income" ? "Receita adicionada" : "Despesa adicionada");
     } catch (err: any) {
@@ -139,9 +172,15 @@ const Dashboard = () => {
             Finanças <span className="text-primary">Pro</span>
           </h1>
         </div>
-        <span className="font-mono text-[11px] px-2.5 py-1 rounded-full border border-white/10 text-muted-foreground bg-card">
-          FREE
-        </span>
+        {premium ? (
+          <span className="font-mono text-[11px] px-2.5 py-1 rounded-full text-background flex items-center gap-1" style={{ background: "var(--gradient-btn-gold)" }}>
+            <Crown className="w-3 h-3" /> PREMIUM
+          </span>
+        ) : (
+          <span className="font-mono text-[11px] px-2.5 py-1 rounded-full border border-white/10 text-muted-foreground bg-card">
+            FREE
+          </span>
+        )}
       </header>
 
       {/* User card */}
@@ -192,7 +231,7 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* Quick stats */}
+      {/* Quick stats — 4 cards now */}
       <section className="grid grid-cols-2 gap-2.5 mb-4">
         <div className="surface-card !rounded-2xl p-4 flex flex-col gap-1.5">
           <TrendingUp className="w-5 h-5 text-primary" />
@@ -204,27 +243,65 @@ const Dashboard = () => {
           <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Categorias</p>
           <p className="text-base font-bold">{new Set(txs.map((t) => t.category)).size}</p>
         </div>
+        <div className="surface-card !rounded-2xl p-4 flex flex-col gap-1.5">
+          <Calendar className="w-5 h-5 text-primary" />
+          <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Este mês</p>
+          <p className="text-base font-bold">{thisMonth.count}</p>
+        </div>
+        <div className="surface-card !rounded-2xl p-4 flex flex-col gap-1.5">
+          <Activity className="w-5 h-5 text-gold" />
+          <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">Top categoria</p>
+          <p className="text-sm font-bold truncate">{topCategory?.name ?? "—"}</p>
+        </div>
       </section>
 
-      {/* Premium upgrade banner */}
-      <button
-        onClick={() => toast.info("Recurso PIX premium em breve!")}
-        className="gold-bg w-full rounded-2xl px-5 py-4 mb-4 flex items-center gap-3.5 cursor-pointer relative overflow-hidden border transition-colors hover:border-gold/50"
-        style={{ borderColor: "hsl(var(--gold) / 0.25)" }}
-      >
-        <div
-          className="absolute -top-10 -right-10 w-32 h-32 rounded-full"
-          style={{ background: "radial-gradient(circle, hsl(var(--gold) / 0.1) 0%, transparent 70%)" }}
-        />
-        <Crown className="w-7 h-7 text-gold flex-shrink-0 relative" />
-        <div className="flex-1 text-left relative">
-          <p className="text-sm font-bold text-gold mb-0.5">Desbloquear Premium</p>
-          <p className="font-mono text-[10px]" style={{ color: "hsl(var(--gold) / 0.6)" }}>
-            Metas, IA, exportação e mais
-          </p>
+      {/* Monthly summary */}
+      <section className="surface-card p-5 mb-4">
+        <h2 className="text-[13px] font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
+          <Calendar className="w-4 h-4" /> Resumo do mês
+        </h2>
+        <div className="grid grid-cols-2 gap-3">
+          <div>
+            <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Receitas</p>
+            <p className="text-base font-bold text-primary">{fmtBRL(thisMonth.inc)}</p>
+          </div>
+          <div>
+            <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Despesas</p>
+            <p className="text-base font-bold text-destructive">{fmtBRL(thisMonth.exp)}</p>
+          </div>
+          <div className="col-span-2 pt-3 border-t border-white/5">
+            <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Saldo do mês</p>
+            <p className={`text-xl font-extrabold ${thisMonth.inc - thisMonth.exp >= 0 ? "text-primary" : "text-destructive"}`}>
+              {fmtBRL(thisMonth.inc - thisMonth.exp)}
+            </p>
+          </div>
         </div>
-        <Sparkles className="w-4 h-4 text-gold opacity-60 relative" />
-      </button>
+      </section>
+
+      {/* AI Advisor (locked unless premium) */}
+      <AIAdvisor txs={txs} premium={premium} onUpgrade={() => setShowPremium(true)} />
+
+      {/* Premium upgrade banner (hide if already premium) */}
+      {!premium && (
+        <button
+          onClick={() => setShowPremium(true)}
+          className="gold-bg w-full rounded-2xl px-5 py-4 mb-4 flex items-center gap-3.5 cursor-pointer relative overflow-hidden border transition-colors hover:border-gold/50"
+          style={{ borderColor: "hsl(var(--gold) / 0.25)" }}
+        >
+          <div
+            className="absolute -top-10 -right-10 w-32 h-32 rounded-full"
+            style={{ background: "radial-gradient(circle, hsl(var(--gold) / 0.1) 0%, transparent 70%)" }}
+          />
+          <Crown className="w-7 h-7 text-gold flex-shrink-0 relative" />
+          <div className="flex-1 text-left relative">
+            <p className="text-sm font-bold text-gold mb-0.5">Desbloquear Premium</p>
+            <p className="font-mono text-[10px]" style={{ color: "hsl(var(--gold) / 0.6)" }}>
+              IA, metas, relatórios, exportação e mais
+            </p>
+          </div>
+          <Sparkles className="w-4 h-4 text-gold opacity-60 relative" />
+        </button>
+      )}
 
       {/* Add transaction */}
       <section className="surface-card p-5 mb-4">
@@ -259,13 +336,12 @@ const Dashboard = () => {
           </div>
 
           <input
-            type="number"
-            step="0.01"
-            min="0"
-            placeholder="Valor (R$)"
-            value={amount}
-            onChange={(e) => setAmount(e.target.value)}
-            className="input-styled"
+            type="text"
+            inputMode="numeric"
+            placeholder="R$ 0,00"
+            value={amountMasked}
+            onChange={(e) => setAmountMasked(formatBRLInput(e.target.value))}
+            className="input-styled font-mono"
           />
           <input
             type="text"
@@ -356,6 +432,8 @@ const Dashboard = () => {
           </ul>
         )}
       </section>
+
+      <PremiumModal open={showPremium} onClose={() => setShowPremium(false)} />
     </main>
   );
 };
