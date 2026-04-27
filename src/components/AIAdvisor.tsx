@@ -47,7 +47,7 @@ const AIAdvisor = ({ txs, premium, onUpgrade }: Props) => {
       <div className="absolute -top-8 -right-8 w-28 h-28 rounded-full" style={{ background: "radial-gradient(circle, hsl(var(--gold) / 0.12) 0%, transparent 70%)" }} />
       <div className="flex items-center justify-between mb-3 relative">
         <div className="flex items-center gap-2.5">
-          <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: "var(--gradient-gold)" }}>
+          <div className="w-9 h-9 rounded-[10px] flex items-center justify-center" style={{ background: "var(--gradient-btn-gold)" }}>
             <Bot className="w-4 h-4 text-background" />
           </div>
           <div>

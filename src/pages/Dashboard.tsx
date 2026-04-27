@@ -173,7 +173,7 @@ const Dashboard = () => {
           </h1>
         </div>
         {premium ? (
-          <span className="font-mono text-[11px] px-2.5 py-1 rounded-full text-background flex items-center gap-1" style={{ background: "var(--gradient-gold)" }}>
+          <span className="font-mono text-[11px] px-2.5 py-1 rounded-full text-background flex items-center gap-1" style={{ background: "var(--gradient-btn-gold)" }}>
             <Crown className="w-3 h-3" /> PREMIUM
           </span>
         ) : (

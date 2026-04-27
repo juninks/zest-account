@@ -82,7 +82,7 @@ const PremiumModal = ({ open, onClose }: Props) => {
         {step === "info" ? (
           <>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "var(--gradient-gold)" }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "var(--gradient-btn-gold)" }}>
                 <Crown className="w-6 h-6 text-background" />
               </div>
               <div>
@@ -125,7 +125,7 @@ const PremiumModal = ({ open, onClose }: Props) => {
             <button
               onClick={() => setStep("payment")}
               className="w-full py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all hover:-translate-y-px text-background"
-              style={{ background: "var(--gradient-gold)" }}
+              style={{ background: "var(--gradient-btn-gold)" }}
             >
               Ativar Premium
             </button>
@@ -133,7 +133,7 @@ const PremiumModal = ({ open, onClose }: Props) => {
         ) : (
           <>
             <div className="flex items-center gap-3 mb-4">
-              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "var(--gradient-gold)" }}>
+              <div className="w-12 h-12 rounded-2xl flex items-center justify-center" style={{ background: "var(--gradient-btn-gold)" }}>
                 <Crown className="w-6 h-6 text-background" />
               </div>
               <div>
@@ -209,7 +209,7 @@ const PremiumModal = ({ open, onClose }: Props) => {
               onClick={submitRequest}
               disabled={sending}
               className="w-full py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all hover:-translate-y-px disabled:opacity-50 text-background"
-              style={{ background: "var(--gradient-gold)" }}
+              style={{ background: "var(--gradient-btn-gold)" }}
             >
               {sending ? "Enviando…" : "Já fiz o PIX — Confirmar"}
             </button>
