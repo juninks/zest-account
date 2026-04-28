@@ -7,9 +7,35 @@ export interface UserDoc {
 }
 
 export const subscribeUser = (uid: string, cb: (u: UserDoc) => void) => {
-  return onSnapshot(doc(db, "users", uid), (snap) => {
-    cb((snap.data() as UserDoc) ?? { premium: false });
-  });
+  let userDoc: UserDoc = { premium: false };
+  let requestDoc: Partial<UserDoc> = {};
+
+  const emit = () => {
+    cb({ ...userDoc, premium: userDoc.premium === true || requestDoc.premium === true });
+  };
+
+  const unsubUser = onSnapshot(
+    doc(db, "users", uid),
+    (snap) => {
+      userDoc = (snap.data() as UserDoc) ?? { premium: false };
+      emit();
+    },
+    (err) => console.error("Erro ao ler usuário premium:", err)
+  );
+
+  const unsubRequest = onSnapshot(
+    doc(db, "premium_requests", uid),
+    (snap) => {
+      requestDoc = (snap.data() as Partial<UserDoc>) ?? {};
+      emit();
+    },
+    (err) => console.error("Erro ao ler pedido premium:", err)
+  );
+
+  return () => {
+    unsubUser();
+    unsubRequest();
+  };
 };
 
 export const requestPremium = async (uid: string, email: string | null, whatsapp: string) => {
