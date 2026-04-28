@@ -61,24 +61,18 @@ const PremiumModal = ({ open, onClose }: Props) => {
     setSending(true);
     try {
       await requestPremium(user.uid, user.email, clean);
-      toast.success("Solicitação registrada! Agora envie o comprovante no WhatsApp.");
-      // Open WhatsApp automatically with the confirmation message
-      const msg = `Olá! Acabei de fazer o Pix de ${PIX_VALUE} para ativar o Premium no FinançasPro. Meu e-mail: ${user.email ?? user.uid} Segue o comprovante em anexo.`;
-      window.open(`https://wa.me/55${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
-      onClose();
-      setStep("info");
-      setWhats("");
-    } catch (err: any) {
-      // If Firestore rules block it, still let the user proceed via WhatsApp
-      const msg = `Olá! Acabei de fazer o Pix de ${PIX_VALUE} para ativar o Premium no FinançasPro. Meu e-mail: ${user.email ?? user.uid} Segue o comprovante em anexo.`;
-      window.open(`https://wa.me/55${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
-      toast.success("Abrindo WhatsApp para enviar o comprovante…");
-      onClose();
-      setStep("info");
-      setWhats("");
+    } catch {
+      // ignore — segue para o WhatsApp mesmo se as regras bloquearem
     } finally {
       setSending(false);
     }
+    const url = `https://wa.me/55${WHATSAPP}?text=${encodeURIComponent(buildWhatsMessage())}`;
+    window.open(url, "_blank");
+    toast.success("Abrindo WhatsApp para enviar o comprovante…");
+    onClose();
+    setStep("info");
+    setWhats("");
+    setName("");
   };
 
   return (
