@@ -18,10 +18,17 @@ const PremiumModal = ({ open, onClose }: Props) => {
   const { user } = useAuth();
   const [copied, setCopied] = useState<string | null>(null);
   const [whats, setWhats] = useState("");
+  const [name, setName] = useState("");
   const [sending, setSending] = useState(false);
   const [step, setStep] = useState<"info" | "payment">("info");
 
   if (!open) return null;
+
+  const buildWhatsMessage = () => {
+    const userName = name.trim() || user?.displayName || "(não informado)";
+    const userEmail = user?.email ?? user?.uid ?? "(não informado)";
+    return `Olá! Acabei de fazer o Pix de ${PIX_VALUE} para ativar o Premium no FinançasPro.\n\nMeu e-mail: ${userEmail}\nMeu nome: ${userName}\n\nSegue o comprovante em anexo.`;
+  };
 
   const copy = async (text: string, label: string) => {
     try {
