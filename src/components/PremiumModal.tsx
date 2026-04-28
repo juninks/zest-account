@@ -18,10 +18,17 @@ const PremiumModal = ({ open, onClose }: Props) => {
   const { user } = useAuth();
   const [copied, setCopied] = useState<string | null>(null);
   const [whats, setWhats] = useState("");
+  const [name, setName] = useState("");
   const [sending, setSending] = useState(false);
   const [step, setStep] = useState<"info" | "payment">("info");
 
   if (!open) return null;
+
+  const buildWhatsMessage = () => {
+    const userName = name.trim() || user?.displayName || "(não informado)";
+    const userEmail = user?.email ?? user?.uid ?? "(não informado)";
+    return `Olá! Acabei de fazer o Pix de ${PIX_VALUE} para ativar o Premium no FinançasPro.\n\nMeu e-mail: ${userEmail}\nMeu nome: ${userName}\n\nSegue o comprovante em anexo.`;
+  };
 
   const copy = async (text: string, label: string) => {
     try {
@@ -54,24 +61,18 @@ const PremiumModal = ({ open, onClose }: Props) => {
     setSending(true);
     try {
       await requestPremium(user.uid, user.email, clean);
-      toast.success("Solicitação registrada! Agora envie o comprovante no WhatsApp.");
-      // Open WhatsApp automatically with the confirmation message
-      const msg = `Olá! Acabei de fazer o Pix de ${PIX_VALUE} para ativar o Premium no FinançasPro. Meu e-mail: ${user.email ?? user.uid} Segue o comprovante em anexo.`;
-      window.open(`https://wa.me/55${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
-      onClose();
-      setStep("info");
-      setWhats("");
-    } catch (err: any) {
-      // If Firestore rules block it, still let the user proceed via WhatsApp
-      const msg = `Olá! Acabei de fazer o Pix de ${PIX_VALUE} para ativar o Premium no FinançasPro. Meu e-mail: ${user.email ?? user.uid} Segue o comprovante em anexo.`;
-      window.open(`https://wa.me/55${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
-      toast.success("Abrindo WhatsApp para enviar o comprovante…");
-      onClose();
-      setStep("info");
-      setWhats("");
+    } catch {
+      // ignore — segue para o WhatsApp mesmo se as regras bloquearem
     } finally {
       setSending(false);
     }
+    const url = `https://wa.me/55${WHATSAPP}?text=${encodeURIComponent(buildWhatsMessage())}`;
+    window.open(url, "_blank");
+    toast.success("Abrindo WhatsApp para enviar o comprovante…");
+    onClose();
+    setStep("info");
+    setWhats("");
+    setName("");
   };
 
   return (
@@ -151,76 +152,73 @@ const PremiumModal = ({ open, onClose }: Props) => {
               </div>
             </div>
 
-            <ol className="space-y-2 mb-5 text-sm">
-              <li className="flex gap-2"><span className="text-gold font-bold">1.</span> Faça o PIX de <span className="text-gold font-bold">{PIX_VALUE}</span> com a chave abaixo</li>
-              <li className="flex gap-2"><span className="text-gold font-bold">2.</span> Informe seu WhatsApp</li>
-              <li className="flex gap-2"><span className="text-gold font-bold">3.</span> Envie o comprovante para confirmação</li>
-            </ol>
-
-            <div className="space-y-2.5 mb-5">
-              <div className="surface-2 rounded-xl p-3.5">
-                <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Nome no PIX</p>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-semibold truncate">{PIX_NAME}</p>
-                  <button onClick={() => copy(PIX_NAME, "Nome")} className="flex-shrink-0 w-8 h-8 rounded-lg bg-secondary border border-white/10 flex items-center justify-center hover:border-gold">
-                    {copied === "Nome" ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
-                </div>
+            {/* PASSO 1 */}
+            <div className="mb-4">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-6 h-6 rounded-full bg-gold text-background font-bold text-xs flex items-center justify-center">1</span>
+                <p className="text-sm font-bold">Faça o PIX de <span className="text-gold">{PIX_VALUE}</span></p>
               </div>
+              <p className="font-mono text-[10px] text-muted-foreground mb-2.5 ml-8">Use a chave abaixo no app do seu banco</p>
 
-              <div className="surface-2 rounded-xl p-3.5 border border-gold/30">
-                <p className="font-mono text-[10px] text-gold uppercase tracking-widest mb-1">Chave PIX (e-mail)</p>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-mono truncate text-gold">{PIX_KEY}</p>
-                  <button onClick={() => copy(PIX_KEY, "Chave PIX")} className="flex-shrink-0 w-8 h-8 rounded-lg bg-secondary border border-gold/40 flex items-center justify-center hover:bg-gold/10">
-                    {copied === "Chave PIX" ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5 text-gold" />}
-                  </button>
+              <div className="space-y-2">
+                <div className="surface-2 rounded-xl p-3 border border-gold/30">
+                  <p className="font-mono text-[10px] text-gold uppercase tracking-widest mb-1">Chave PIX (e-mail)</p>
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-sm font-mono truncate text-gold">{PIX_KEY}</p>
+                    <button onClick={() => copy(PIX_KEY, "Chave PIX")} className="flex-shrink-0 w-9 h-9 rounded-lg bg-gold/20 border border-gold/40 flex items-center justify-center hover:bg-gold/30">
+                      {copied === "Chave PIX" ? <Check className="w-4 h-4 text-primary" /> : <Copy className="w-4 h-4 text-gold" />}
+                    </button>
+                  </div>
                 </div>
-              </div>
-
-              <div className="surface-2 rounded-xl p-3.5">
-                <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">WhatsApp para confirmação</p>
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-sm font-mono">{WHATSAPP}</p>
-                  <button onClick={() => copy(WHATSAPP, "WhatsApp")} className="flex-shrink-0 w-8 h-8 rounded-lg bg-secondary border border-white/10 flex items-center justify-center hover:border-gold">
-                    {copied === "WhatsApp" ? <Check className="w-3.5 h-3.5 text-primary" /> : <Copy className="w-3.5 h-3.5" />}
-                  </button>
+                <div className="surface-2 rounded-xl p-3">
+                  <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest mb-1">Recebedor</p>
+                  <p className="text-sm font-semibold">{PIX_NAME}</p>
                 </div>
               </div>
             </div>
 
+            {/* PASSO 2 */}
             <div className="mb-4">
-              <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 block">
-                Seu WhatsApp (com DDD)
-              </label>
-              <input
-                type="tel"
-                value={whats}
-                onChange={(e) => setWhats(e.target.value)}
-                placeholder="11999999999"
-                className="input-styled"
-              />
-              <p className="font-mono text-[10px] text-muted-foreground mt-1.5">
-                Vamos te confirmar a ativação por aqui assim que o pagamento for verificado.
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-6 h-6 rounded-full bg-gold text-background font-bold text-xs flex items-center justify-center">2</span>
+                <p className="text-sm font-bold">Seus dados</p>
+              </div>
+              <div className="ml-8 space-y-2">
+                <input
+                  type="text"
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                  placeholder="Seu nome completo"
+                  className="input-styled"
+                />
+                <input
+                  type="tel"
+                  value={whats}
+                  onChange={(e) => setWhats(e.target.value)}
+                  placeholder="WhatsApp com DDD (ex: 11999999999)"
+                  className="input-styled"
+                />
+              </div>
+            </div>
+
+            {/* PASSO 3 */}
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <span className="w-6 h-6 rounded-full bg-gold text-background font-bold text-xs flex items-center justify-center">3</span>
+                <p className="text-sm font-bold">Envie o comprovante</p>
+              </div>
+              <p className="font-mono text-[10px] text-muted-foreground ml-8">
+                Ao clicar abaixo, abriremos o WhatsApp com sua mensagem pronta. Basta anexar o comprovante e enviar — seu Premium é ativado em até 24h.
               </p>
             </div>
-
-            <a
-              href={`https://wa.me/55${WHATSAPP}?text=${encodeURIComponent(`Olá! Acabei de fazer o Pix de ${PIX_VALUE} para ativar o Premium no FinançasPro. Meu e-mail: ${user?.email ?? user?.uid} Segue o comprovante em anexo.`)}`}
-              target="_blank"
-              rel="noreferrer"
-              className="block w-full py-3 rounded-xl font-bold text-sm text-center bg-secondary border border-white/10 mb-2 hover:border-white/20 transition"
-            >
-              📱 Enviar comprovante no WhatsApp
-            </a>
 
             <button
               onClick={submitRequest}
               disabled={sending}
-              className="w-full py-3.5 rounded-xl font-bold text-sm tracking-wide transition-all hover:-translate-y-px disabled:opacity-50 text-background"
+              className="w-full py-4 rounded-xl font-bold text-sm tracking-wide transition-all hover:-translate-y-px disabled:opacity-50 text-background"
               style={{ background: "var(--gradient-btn-gold)" }}
             >
-              {sending ? "Enviando…" : "Já fiz o PIX — Confirmar"}
+              {sending ? "Abrindo WhatsApp…" : "📱 Já fiz o PIX — Enviar comprovante"}
             </button>
 
             <button
