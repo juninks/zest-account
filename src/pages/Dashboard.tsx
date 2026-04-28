@@ -66,19 +66,23 @@ const Dashboard = () => {
 
   useEffect(() => {
     if (!user) return;
-    const q = query(
-      collection(db, "transactions"),
-      where("uid", "==", user.uid),
-      orderBy("createdAt", "desc")
-    );
+    // No orderBy here — avoids needing a composite index, and lets new docs
+    // (with pending serverTimestamp) appear immediately. We sort client-side.
+    const q = query(collection(db, "transactions"), where("uid", "==", user.uid));
     const unsub = onSnapshot(
       q,
       (snap) => {
-        setTxs(snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Tx[]);
+        const list = snap.docs.map((d) => ({ id: d.id, ...(d.data() as any) })) as Tx[];
+        list.sort((a, b) => {
+          const ta = a.createdAt?.toMillis?.() ?? Date.now();
+          const tb = b.createdAt?.toMillis?.() ?? Date.now();
+          return tb - ta;
+        });
+        setTxs(list);
       },
       (err) => {
         console.error(err);
-        toast.error("Erro ao carregar transações");
+        toast.error("Erro ao carregar transações: " + err.message);
       }
     );
     return unsub;
