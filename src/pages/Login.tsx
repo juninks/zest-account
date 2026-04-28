@@ -5,7 +5,8 @@ import { Wallet } from "lucide-react";
 
 const Login = () => {
   const { loginAnon, loginEmail, signupEmail } = useAuth();
-  const [mode, setMode] = useState<"login" | "signup">("login");
+  // Default mode is "signup" — we want "Criar conta" to be the primary screen.
+  const [mode, setMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -18,7 +19,19 @@ const Login = () => {
       else await signupEmail(email, password);
       toast.success(mode === "login" ? "Bem-vindo!" : "Conta criada!");
     } catch (err: any) {
-      toast.error(err.message ?? "Erro");
+      const code = err?.code ?? "";
+      if (code === "auth/operation-not-allowed") {
+        toast.error(
+          "Login por email não está ativado no Firebase. Vá em Authentication → Sign-in method → ative Email/Password."
+        );
+      } else if (code === "auth/email-already-in-use") {
+        toast.error("Este email já tem conta. Tente entrar.");
+        setMode("login");
+      } else if (code === "auth/invalid-credential" || code === "auth/wrong-password") {
+        toast.error("Email ou senha incorretos.");
+      } else {
+        toast.error(err.message ?? "Erro");
+      }
     } finally {
       setBusy(false);
     }
@@ -30,7 +43,12 @@ const Login = () => {
       await loginAnon();
       toast.success("Sessão anônima iniciada");
     } catch (err: any) {
-      toast.error(err.message ?? "Erro");
+      const code = err?.code ?? "";
+      if (code === "auth/admin-restricted-operation") {
+        toast.error("Login anônimo não está ativado no Firebase.");
+      } else {
+        toast.error(err.message ?? "Erro");
+      }
     } finally {
       setBusy(false);
     }
@@ -53,10 +71,10 @@ const Login = () => {
 
       <section className="surface-card p-7 mb-3.5">
         <h2 className="text-xl font-extrabold tracking-tight mb-1">
-          {mode === "login" ? "Entrar" : "Criar conta"}
+          {mode === "signup" ? "Criar conta" : "Entrar"}
         </h2>
         <p className="font-mono text-[11px] text-muted-foreground mb-5">
-          {mode === "login" ? "Acesse sua conta" : "Comece em segundos"}
+          {mode === "signup" ? "Comece em segundos" : "Acesse sua conta"}
         </p>
 
         <form onSubmit={submit} className="space-y-2.5">
@@ -94,29 +112,31 @@ const Login = () => {
             className="w-full py-3.5 rounded-xl font-bold text-sm text-primary-foreground tracking-wide transition-all hover:-translate-y-px disabled:opacity-50 mt-2"
             style={{ background: "var(--gradient-btn-primary)", boxShadow: "var(--shadow-card)" }}
           >
-            {mode === "login" ? "Entrar" : "Criar conta"}
+            {mode === "signup" ? "Criar conta" : "Entrar"}
           </button>
         </form>
 
-        <div className="flex items-center gap-3 my-2.5">
+        {/* Toggle between create / login — placed prominently below the primary action */}
+        <button
+          onClick={() => setMode(mode === "signup" ? "login" : "signup")}
+          className="w-full py-3 mt-3 rounded-xl font-bold text-sm bg-secondary border border-white/10 hover:border-primary/40 transition-all"
+        >
+          {mode === "signup" ? "Já tem conta? Entrar" : "Não tem conta? Criar"}
+        </button>
+
+        <div className="flex items-center gap-3 my-3">
           <div className="flex-1 h-px bg-white/10" />
           <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">ou</span>
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
+        {/* Anonymous — smaller, secondary */}
         <button
           onClick={anon}
           disabled={busy}
-          className="w-full py-3.5 rounded-xl font-bold text-sm bg-secondary border border-white/10 hover:border-white/20 transition-all"
+          className="w-full py-2.5 rounded-lg text-xs text-muted-foreground hover:text-foreground border border-white/5 hover:border-white/15 transition-all"
         >
           Continuar anônimo
-        </button>
-
-        <button
-          onClick={() => setMode(mode === "login" ? "signup" : "login")}
-          className="w-full py-3 mt-2 text-xs text-muted-foreground hover:text-foreground transition"
-        >
-          {mode === "login" ? "Não tem conta? Criar" : "Já tem conta? Entrar"}
         </button>
 
         <p className="font-mono text-[10px] text-muted-foreground text-center leading-relaxed mt-3.5">

@@ -54,12 +54,21 @@ const PremiumModal = ({ open, onClose }: Props) => {
     setSending(true);
     try {
       await requestPremium(user.uid, user.email, clean);
-      toast.success("Solicitação enviada! Aguarde a confirmação.");
+      toast.success("Solicitação registrada! Agora envie o comprovante no WhatsApp.");
+      // Open WhatsApp automatically with the confirmation message
+      const msg = `Olá! Acabei de fazer o Pix de ${PIX_VALUE} para ativar o Premium no FinançasPro. Meu e-mail: ${user.email ?? user.uid} Segue o comprovante em anexo.`;
+      window.open(`https://wa.me/55${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
       onClose();
       setStep("info");
       setWhats("");
     } catch (err: any) {
-      toast.error(err.message ?? "Erro ao enviar");
+      // If Firestore rules block it, still let the user proceed via WhatsApp
+      const msg = `Olá! Acabei de fazer o Pix de ${PIX_VALUE} para ativar o Premium no FinançasPro. Meu e-mail: ${user.email ?? user.uid} Segue o comprovante em anexo.`;
+      window.open(`https://wa.me/55${WHATSAPP}?text=${encodeURIComponent(msg)}`, "_blank");
+      toast.success("Abrindo WhatsApp para enviar o comprovante…");
+      onClose();
+      setStep("info");
+      setWhats("");
     } finally {
       setSending(false);
     }
@@ -197,7 +206,7 @@ const PremiumModal = ({ open, onClose }: Props) => {
             </div>
 
             <a
-              href={`https://wa.me/55${WHATSAPP}?text=${encodeURIComponent(`Olá! Acabei de fazer o PIX de ${PIX_VALUE} para ativar o Premium do Finanças Pro. Email da minha conta: ${user?.email ?? user?.uid}`)}`}
+              href={`https://wa.me/55${WHATSAPP}?text=${encodeURIComponent(`Olá! Acabei de fazer o Pix de ${PIX_VALUE} para ativar o Premium no FinançasPro. Meu e-mail: ${user?.email ?? user?.uid} Segue o comprovante em anexo.`)}`}
               target="_blank"
               rel="noreferrer"
               className="block w-full py-3 rounded-xl font-bold text-sm text-center bg-secondary border border-white/10 mb-2 hover:border-white/20 transition"
