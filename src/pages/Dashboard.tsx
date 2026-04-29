@@ -15,8 +15,11 @@ import { useAuth } from "@/contexts/AuthContext";
 import { subscribeUser } from "@/lib/premium";
 import { formatBRLInput, parseBRL } from "@/lib/format";
 import { toast } from "sonner";
+import { Link } from "react-router-dom";
 import PremiumModal from "@/components/PremiumModal";
 import AIAdvisor from "@/components/AIAdvisor";
+import { isAdmin } from "@/lib/admin";
+import { Shield } from "lucide-react";
 import {
   Wallet,
   LogOut,
@@ -199,6 +202,15 @@ const Dashboard = () => {
             {user?.email ?? user?.uid.slice(0, 18) + "…"}
           </p>
         </div>
+        {isAdmin(user) && (
+          <Link
+            to="/admin"
+            className="font-mono text-[10px] px-2.5 py-1.5 border border-gold/40 rounded-lg text-gold hover:bg-gold/10 transition flex items-center gap-1"
+            title="Painel Admin"
+          >
+            <Shield className="w-3 h-3" /> Admin
+          </Link>
+        )}
         <button
           onClick={() => logout()}
           className="font-mono text-[10px] px-2.5 py-1.5 border border-white/10 rounded-lg text-muted-foreground hover:text-destructive hover:border-destructive transition flex items-center gap-1"
