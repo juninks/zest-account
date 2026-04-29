@@ -7,7 +7,6 @@ export const ADMIN_UIDS: string[] = [
 // Liberação por e-mail (alternativa mais fácil que UID).
 export const ADMIN_EMAILS: string[] = [
   "wildsonaguiar5@gmail.com",
-  "wildsonaguiar83@gmail.com",
 ];
 
 export const isAdmin = (user: { uid?: string; email?: string | null } | null) => {
