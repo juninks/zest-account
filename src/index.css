@@ -134,8 +134,10 @@
   }
 
   .input-styled {
-    @apply w-full bg-secondary border border-white/10 rounded-[10px] px-3.5 py-3 text-sm outline-none transition-all;
-    font-family: 'Syne', sans-serif;
+    @apply w-full bg-secondary border border-white/10 rounded-[10px] px-3.5 py-3 text-[15px] outline-none transition-all;
+    font-family: 'Plus Jakarta Sans', system-ui, sans-serif;
+    font-weight: 500;
+    letter-spacing: 0.01em;
   }
   .input-styled:focus {
     border-color: hsl(var(--primary) / 0.4);
@@ -143,6 +145,7 @@
   }
   .input-styled::placeholder {
     color: hsl(var(--muted-foreground));
+    font-weight: 400;
   }
 }
 
