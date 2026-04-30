@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Target, Crown, Check, Pencil } from "lucide-react";
+import { Target, Crown, Check, Pencil, Plus } from "lucide-react";
 import { Progress } from "@/components/ui/progress";
 import { formatBRLInput, parseBRL } from "@/lib/format";
 import { toast } from "sonner";
@@ -7,23 +7,35 @@ import { toast } from "sonner";
 interface Props {
   uid: string;
   premium: boolean;
-  monthlySaved: number; // current saved this month (income - expense)
   onUpgrade: () => void;
 }
 
-const storageKey = (uid: string) => `goal_monthly_${uid}`;
+const goalKey = (uid: string) => `goal_monthly_${uid}`;
+// Saved amount the user manually informs each month. Stored per uid + YYYY-MM.
+const savedKey = (uid: string) => {
+  const d = new Date();
+  const m = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  return `goal_saved_${uid}_${m}`;
+};
 
 const fmtBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const GoalsCard = ({ uid, premium, monthlySaved, onUpgrade }: Props) => {
+const GoalsCard = ({ uid, premium, onUpgrade }: Props) => {
   const [goal, setGoal] = useState<number>(0);
-  const [editing, setEditing] = useState(false);
-  const [input, setInput] = useState("");
+  const [saved, setSaved] = useState<number>(0);
+
+  const [editingGoal, setEditingGoal] = useState(false);
+  const [goalInput, setGoalInput] = useState("");
+
+  const [editingSaved, setEditingSaved] = useState(false);
+  const [savedInput, setSavedInput] = useState("");
 
   useEffect(() => {
-    const raw = localStorage.getItem(storageKey(uid));
-    if (raw) setGoal(Number(raw) || 0);
+    const g = localStorage.getItem(goalKey(uid));
+    if (g) setGoal(Number(g) || 0);
+    const s = localStorage.getItem(savedKey(uid));
+    if (s) setSaved(Number(s) || 0);
   }, [uid]);
 
   if (!premium) {
@@ -55,18 +67,28 @@ const GoalsCard = ({ uid, premium, monthlySaved, onUpgrade }: Props) => {
     );
   }
 
-  const save = () => {
-    const v = parseBRL(input);
+  const saveGoal = () => {
+    const v = parseBRL(goalInput);
     if (!v || v <= 0) return toast.error("Valor inválido");
-    localStorage.setItem(storageKey(uid), String(v));
+    localStorage.setItem(goalKey(uid), String(v));
     setGoal(v);
-    setEditing(false);
-    setInput("");
+    setEditingGoal(false);
+    setGoalInput("");
     toast.success("Meta salva!");
   };
 
-  const pct = goal > 0 ? Math.min(100, Math.max(0, (monthlySaved / goal) * 100)) : 0;
-  const reached = monthlySaved >= goal && goal > 0;
+  const saveSaved = () => {
+    const v = parseBRL(savedInput);
+    if (v < 0 || isNaN(v)) return toast.error("Valor inválido");
+    localStorage.setItem(savedKey(uid), String(v));
+    setSaved(v);
+    setEditingSaved(false);
+    setSavedInput("");
+    toast.success("Valor atualizado!");
+  };
+
+  const pct = goal > 0 ? Math.min(100, Math.max(0, (saved / goal) * 100)) : 0;
+  const reached = saved >= goal && goal > 0;
 
   return (
     <section className="surface-card p-5 mb-4 relative overflow-hidden border-gold/20">
@@ -87,20 +109,21 @@ const GoalsCard = ({ uid, premium, monthlySaved, onUpgrade }: Props) => {
             <p className="font-mono text-[9px] text-gold uppercase tracking-widest">Premium</p>
           </div>
         </div>
-        {goal > 0 && !editing && (
+        {goal > 0 && !editingGoal && (
           <button
             onClick={() => {
-              setInput(formatBRLInput(String(Math.round(goal * 100))));
-              setEditing(true);
+              setGoalInput(formatBRLInput(String(Math.round(goal * 100))));
+              setEditingGoal(true);
             }}
             className="w-8 h-8 rounded-lg bg-secondary border border-white/10 flex items-center justify-center hover:border-gold transition"
+            aria-label="Editar meta"
           >
             <Pencil className="w-3.5 h-3.5" />
           </button>
         )}
       </div>
 
-      {goal === 0 || editing ? (
+      {goal === 0 || editingGoal ? (
         <div className="space-y-2 relative">
           <p className="text-xs text-muted-foreground">
             Quanto você quer economizar este mês?
@@ -110,12 +133,12 @@ const GoalsCard = ({ uid, premium, monthlySaved, onUpgrade }: Props) => {
               type="text"
               inputMode="numeric"
               placeholder="R$ 500,00"
-              value={input}
-              onChange={(e) => setInput(formatBRLInput(e.target.value))}
+              value={goalInput}
+              onChange={(e) => setGoalInput(formatBRLInput(e.target.value))}
               className="input-styled font-mono flex-1"
             />
             <button
-              onClick={save}
+              onClick={saveGoal}
               className="px-4 rounded-[10px] font-bold text-sm text-background"
               style={{ background: "var(--gradient-btn-gold)" }}
             >
@@ -124,10 +147,10 @@ const GoalsCard = ({ uid, premium, monthlySaved, onUpgrade }: Props) => {
           </div>
         </div>
       ) : (
-        <div className="relative space-y-2">
+        <div className="relative space-y-3">
           <div className="flex items-baseline justify-between">
             <p className={`text-2xl font-extrabold ${reached ? "text-gold" : "text-foreground"}`}>
-              {fmtBRL(Math.max(0, monthlySaved))}
+              {fmtBRL(saved)}
             </p>
             <p className="font-mono text-[11px] text-muted-foreground">
               de {fmtBRL(goal)}
@@ -137,8 +160,47 @@ const GoalsCard = ({ uid, premium, monthlySaved, onUpgrade }: Props) => {
           <p className="font-mono text-[10px] text-muted-foreground">
             {reached
               ? "🎉 Meta atingida! Parabéns."
-              : `${pct.toFixed(0)}% concluído • faltam ${fmtBRL(goal - monthlySaved)}`}
+              : `${pct.toFixed(0)}% concluído • faltam ${fmtBRL(Math.max(0, goal - saved))}`}
           </p>
+
+          {editingSaved ? (
+            <div className="flex gap-2 pt-1">
+              <input
+                autoFocus
+                type="text"
+                inputMode="numeric"
+                placeholder="R$ 0,00"
+                value={savedInput}
+                onChange={(e) => setSavedInput(formatBRLInput(e.target.value))}
+                className="input-styled font-mono flex-1"
+              />
+              <button
+                onClick={saveSaved}
+                className="px-4 rounded-[10px] font-bold text-sm text-background"
+                style={{ background: "var(--gradient-btn-gold)" }}
+                aria-label="Salvar valor poupado"
+              >
+                <Check className="w-4 h-4" />
+              </button>
+              <button
+                onClick={() => { setEditingSaved(false); setSavedInput(""); }}
+                className="px-3 rounded-[10px] text-xs bg-secondary border border-white/10"
+              >
+                Cancelar
+              </button>
+            </div>
+          ) : (
+            <button
+              onClick={() => {
+                setSavedInput(saved > 0 ? formatBRLInput(String(Math.round(saved * 100))) : "");
+                setEditingSaved(true);
+              }}
+              className="w-full py-2.5 rounded-[10px] text-xs font-bold border border-gold/40 text-gold hover:bg-gold/10 transition flex items-center justify-center gap-1.5"
+            >
+              <Plus className="w-3.5 h-3.5" />
+              {saved > 0 ? "Atualizar valor poupado" : "Informar valor poupado"}
+            </button>
+          )}
         </div>
       )}
     </section>

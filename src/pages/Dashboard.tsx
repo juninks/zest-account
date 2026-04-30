@@ -154,6 +154,28 @@ const Dashboard = () => {
   const monthlyCount = countThisMonth(txs);
   const remaining = remainingFree(txs);
 
+  // Notify once when Free user just reached the monthly limit
+  useEffect(() => {
+    if (premium || !user) return;
+    const flagKey = `freeLimitNotified_${user.uid}_${new Date().getFullYear()}-${new Date().getMonth()}`;
+    if (monthlyCount >= FREE_MONTHLY_TX_LIMIT && !localStorage.getItem(flagKey)) {
+      toast.error(
+        `🚫 Você atingiu o limite de ${FREE_MONTHLY_TX_LIMIT} transações do plano Free este mês. Faça upgrade para Premium e tenha tudo ilimitado!`,
+        { duration: 7000 }
+      );
+      localStorage.setItem(flagKey, "1");
+      setShowPremium(true);
+    }
+    // Warning when 5 left
+    const warnKey = `freeLimitWarned_${user.uid}_${new Date().getFullYear()}-${new Date().getMonth()}`;
+    if (remaining > 0 && remaining <= 5 && !localStorage.getItem(warnKey)) {
+      toast.warning(`⚠️ Faltam apenas ${remaining} transações no seu plano Free este mês.`, {
+        duration: 5000,
+      });
+      localStorage.setItem(warnKey, "1");
+    }
+  }, [monthlyCount, remaining, premium, user]);
+
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
@@ -415,7 +437,6 @@ const Dashboard = () => {
         <GoalsCard
           uid={user.uid}
           premium={premium}
-          monthlySaved={thisMonth.inc - thisMonth.exp}
           onUpgrade={() => setShowPremium(true)}
         />
       )}
