@@ -415,7 +415,6 @@ const Dashboard = () => {
         <GoalsCard
           uid={user.uid}
           premium={premium}
-          monthlySaved={thisMonth.inc - thisMonth.exp}
           onUpgrade={() => setShowPremium(true)}
         />
       )}
