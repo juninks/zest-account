@@ -1,11 +1,13 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link, Navigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Wallet, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 const Login = () => {
-  const { loginAnon, loginEmail, signupEmail } = useAuth();
+  const { user, loginAnon, loginEmail, signupEmail } = useAuth();
+  if (user) return <Navigate to="/app" replace />;
+
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
