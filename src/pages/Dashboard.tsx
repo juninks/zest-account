@@ -18,7 +18,15 @@ import { toast } from "sonner";
 import { Link } from "react-router-dom";
 import PremiumModal from "@/components/PremiumModal";
 import AIAdvisor from "@/components/AIAdvisor";
+import GoalsCard from "@/components/GoalsCard";
+import CategoryChart from "@/components/CategoryChart";
 import { isAdmin } from "@/lib/admin";
+import {
+  getCustomCategories,
+  addCustomCategory,
+  removeCustomCategory,
+} from "@/lib/customCategories";
+import { FREE_MONTHLY_TX_LIMIT, countThisMonth, remainingFree } from "@/lib/limits";
 import { Shield } from "lucide-react";
 import {
   Wallet,
@@ -35,6 +43,8 @@ import {
   ArrowUpCircle,
   Calendar,
   Activity,
+  X,
+  Lock,
 } from "lucide-react";
 
 type TxType = "income" | "expense";
@@ -47,7 +57,7 @@ interface Tx {
   createdAt?: Timestamp;
 }
 
-const CATEGORIES: Record<TxType, string[]> = {
+const BASE_CATEGORIES: Record<TxType, string[]> = {
   income: ["Salário", "Freelance", "Investimento", "Outro"],
   expense: ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Outro"],
 };
@@ -61,15 +71,16 @@ const Dashboard = () => {
   const [type, setType] = useState<TxType>("expense");
   const [amountMasked, setAmountMasked] = useState("");
   const [desc, setDesc] = useState("");
-  const [cat, setCat] = useState(CATEGORIES.expense[0]);
+  const [cat, setCat] = useState(BASE_CATEGORIES.expense[0]);
   const [busy, setBusy] = useState(false);
   const [premium, setPremium] = useState(false);
   const [showPremium, setShowPremium] = useState(false);
+  const [customCats, setCustomCats] = useState<string[]>([]);
+  const [newCatInput, setNewCatInput] = useState("");
+  const [showAddCat, setShowAddCat] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    // No orderBy here — avoids needing a composite index, and lets new docs
-    // (with pending serverTimestamp) appear immediately. We sort client-side.
     const q = query(collection(db, "transactions"), where("uid", "==", user.uid));
     const unsub = onSnapshot(
       q,
@@ -96,15 +107,30 @@ const Dashboard = () => {
     return unsub;
   }, [user]);
 
+  // Load custom categories when type/user/premium changes
   useEffect(() => {
-    setCat(CATEGORIES[type][0]);
+    if (!user || !premium) {
+      setCustomCats([]);
+      return;
+    }
+    setCustomCats(getCustomCategories(user.uid, type));
+  }, [user, type, premium]);
+
+  useEffect(() => {
+    setCat(BASE_CATEGORIES[type][0]);
+    setShowAddCat(false);
+    setNewCatInput("");
   }, [type]);
+
+  const allCategories = useMemo(
+    () => [...BASE_CATEGORIES[type], ...customCats],
+    [type, customCats]
+  );
 
   const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
   const balance = income - expense;
 
-  // This month stats
   const thisMonth = useMemo(() => {
     const now = new Date();
     const m = txs.filter((t) => {
@@ -125,9 +151,21 @@ const Dashboard = () => {
     return top ? { name: top[0], value: top[1] } : null;
   }, [txs]);
 
+  const monthlyCount = countThisMonth(txs);
+  const remaining = remainingFree(txs);
+
   const add = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    // Free plan limit check
+    if (!premium && monthlyCount >= FREE_MONTHLY_TX_LIMIT) {
+      setShowPremium(true);
+      return toast.error(
+        `Limite do plano Free atingido (${FREE_MONTHLY_TX_LIMIT} transações/mês). Faça upgrade!`
+      );
+    }
+
     const a = parseBRL(amountMasked);
     if (!a || a <= 0) return toast.error("Valor inválido");
     if (!desc.trim()) return toast.error("Adicione uma descrição");
@@ -160,26 +198,58 @@ const Dashboard = () => {
     }
   };
 
+  const handleAddCustomCat = () => {
+    if (!user) return;
+    if (!premium) {
+      setShowPremium(true);
+      return;
+    }
+    const name = newCatInput.trim();
+    if (!name) return;
+    if ([...BASE_CATEGORIES[type], ...customCats].some((c) => c.toLowerCase() === name.toLowerCase())) {
+      return toast.error("Categoria já existe");
+    }
+    addCustomCategory(user.uid, type, name);
+    setCustomCats(getCustomCategories(user.uid, type));
+    setNewCatInput("");
+    setShowAddCat(false);
+    toast.success("Categoria criada!");
+  };
+
+  const handleRemoveCustomCat = (name: string) => {
+    if (!user) return;
+    removeCustomCategory(user.uid, type, name);
+    setCustomCats(getCustomCategories(user.uid, type));
+    if (cat === name) setCat(BASE_CATEGORIES[type][0]);
+  };
+
   const balanceClass =
     balance > 0 ? "text-primary" : balance < 0 ? "text-destructive" : "text-foreground";
 
   return (
-    <main className="max-w-md mx-auto px-4 pt-6 pb-20 relative z-10 animate-fade-in">
+    <main
+      className={`max-w-md mx-auto px-4 pt-6 pb-20 relative z-10 animate-fade-in ${
+        premium ? "premium-theme" : ""
+      }`}
+    >
       {/* Header */}
       <header className="flex items-center justify-between mb-5">
         <div className="flex items-center gap-2.5">
           <div
             className="w-10 h-10 rounded-xl flex items-center justify-center glow-primary"
-            style={{ background: "var(--gradient-primary)" }}
+            style={{ background: premium ? "var(--gradient-btn-gold)" : "var(--gradient-primary)" }}
           >
             <Wallet className="w-5 h-5 text-primary-foreground" />
           </div>
           <h1 className="text-xl font-extrabold tracking-tight">
-            Finanças <span className="text-primary">Pro</span>
+            Finanças{" "}
+            <span className={premium ? "gradient-text-gold" : "text-primary"}>
+              {premium ? "Premium" : "Pro"}
+            </span>
           </h1>
         </div>
         {premium ? (
-          <span className="font-mono text-[11px] px-2.5 py-1 rounded-full text-background flex items-center gap-1" style={{ background: "var(--gradient-btn-gold)" }}>
+          <span className="font-mono text-[11px] px-2.5 py-1 rounded-full premium-crown-badge flex items-center gap-1">
             <Crown className="w-3 h-3" /> PREMIUM
           </span>
         ) : (
@@ -219,6 +289,42 @@ const Dashboard = () => {
         </button>
       </section>
 
+      {/* Free plan usage indicator */}
+      {!premium && (
+        <section className="surface-card !rounded-2xl px-4 py-3 mb-4">
+          <div className="flex items-center justify-between mb-1.5">
+            <p className="font-mono text-[10px] text-muted-foreground uppercase tracking-widest">
+              Plano Free • Uso do mês
+            </p>
+            <p className="font-mono text-[11px]">
+              <span className={remaining <= 5 ? "text-destructive font-bold" : "text-foreground"}>
+                {monthlyCount}
+              </span>
+              <span className="text-muted-foreground">/{FREE_MONTHLY_TX_LIMIT}</span>
+            </p>
+          </div>
+          <div className="h-1.5 bg-secondary rounded-full overflow-hidden">
+            <div
+              className="h-full transition-all"
+              style={{
+                width: `${Math.min(100, (monthlyCount / FREE_MONTHLY_TX_LIMIT) * 100)}%`,
+                background:
+                  remaining <= 5
+                    ? "hsl(var(--destructive))"
+                    : "var(--gradient-btn-primary)",
+              }}
+            />
+          </div>
+          {remaining <= 10 && (
+            <p className="text-[10px] text-muted-foreground mt-1.5">
+              {remaining === 0
+                ? "🚫 Limite atingido. Faça upgrade para continuar."
+                : `Faltam apenas ${remaining} transações este mês.`}
+            </p>
+          )}
+        </section>
+      )}
+
       {/* Balance */}
       <section
         className="balance-bg rounded-3xl p-7 mb-4 relative overflow-hidden border"
@@ -226,12 +332,20 @@ const Dashboard = () => {
       >
         <div
           className="absolute -top-10 -right-10 w-40 h-40 rounded-full"
-          style={{ background: "radial-gradient(circle, hsl(var(--primary) / 0.12) 0%, transparent 70%)" }}
+          style={{
+            background: premium
+              ? "radial-gradient(circle, hsl(var(--gold) / 0.18) 0%, transparent 70%)"
+              : "radial-gradient(circle, hsl(var(--primary) / 0.12) 0%, transparent 70%)",
+          }}
         />
         <p className="font-mono text-[11px] uppercase tracking-widest text-muted-foreground mb-2 relative">
           Saldo atual
         </p>
-        <p className={`text-[42px] font-extrabold tracking-tighter leading-none mb-5 relative transition-colors ${balanceClass}`}>
+        <p
+          className={`text-[42px] font-extrabold tracking-tighter leading-none mb-5 relative transition-colors ${
+            premium ? "gradient-text-gold" : balanceClass
+          }`}
+        >
           {fmtBRL(balance)}
         </p>
         <div className="grid grid-cols-2 gap-3 relative">
@@ -246,7 +360,7 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* Quick stats — 4 cards now */}
+      {/* Quick stats */}
       <section className="grid grid-cols-2 gap-2.5 mb-4">
         <div className="surface-card !rounded-2xl p-4 flex flex-col gap-1.5">
           <TrendingUp className="w-5 h-5 text-primary" />
@@ -293,10 +407,27 @@ const Dashboard = () => {
         </div>
       </section>
 
-      {/* AI Advisor (locked unless premium) */}
+      {/* AI Advisor */}
       <AIAdvisor txs={txs} premium={premium} onUpgrade={() => setShowPremium(true)} />
 
-      {/* Premium upgrade banner (hide if already premium) */}
+      {/* Goals (Premium) */}
+      {user && (
+        <GoalsCard
+          uid={user.uid}
+          premium={premium}
+          monthlySaved={thisMonth.inc - thisMonth.exp}
+          onUpgrade={() => setShowPremium(true)}
+        />
+      )}
+
+      {/* Category chart (Premium) */}
+      <CategoryChart
+        txs={txs}
+        premium={premium}
+        onUpgrade={() => setShowPremium(true)}
+      />
+
+      {/* Premium upgrade banner */}
       {!premium && (
         <button
           onClick={() => setShowPremium(true)}
@@ -311,7 +442,7 @@ const Dashboard = () => {
           <div className="flex-1 text-left relative">
             <p className="text-sm font-bold text-gold mb-0.5">Desbloquear Premium</p>
             <p className="font-mono text-[10px]" style={{ color: "hsl(var(--gold) / 0.6)" }}>
-              IA, metas, relatórios, exportação e mais
+              IA, metas, gráficos, categorias custom e transações ilimitadas
             </p>
           </div>
           <Sparkles className="w-4 h-4 text-gold opacity-60 relative" />
@@ -366,8 +497,8 @@ const Dashboard = () => {
             className="input-styled"
           />
 
-          <div className="flex gap-1.5 flex-wrap pt-1">
-            {CATEGORIES[type].map((c) => (
+          <div className="flex gap-1.5 flex-wrap pt-1 items-center">
+            {BASE_CATEGORIES[type].map((c) => (
               <button
                 key={c}
                 type="button"
@@ -381,15 +512,96 @@ const Dashboard = () => {
                 {c}
               </button>
             ))}
+            {customCats.map((c) => (
+              <span
+                key={c}
+                className={`group px-3 py-1 rounded-full border font-mono text-[11px] transition flex items-center gap-1.5 ${
+                  cat === c
+                    ? "border-gold text-gold bg-gold/10"
+                    : "border-gold/30 text-gold/80 bg-secondary"
+                }`}
+              >
+                <button type="button" onClick={() => setCat(c)}>
+                  {c}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => handleRemoveCustomCat(c)}
+                  className="opacity-50 hover:opacity-100"
+                  aria-label={`Remover ${c}`}
+                >
+                  <X className="w-3 h-3" />
+                </button>
+              </span>
+            ))}
+
+            {showAddCat ? (
+              <div className="flex gap-1 items-center">
+                <input
+                  autoFocus
+                  type="text"
+                  value={newCatInput}
+                  onChange={(e) => setNewCatInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      handleAddCustomCat();
+                    }
+                    if (e.key === "Escape") {
+                      setShowAddCat(false);
+                      setNewCatInput("");
+                    }
+                  }}
+                  placeholder="Nova categoria"
+                  className="bg-secondary border border-gold/40 rounded-full px-3 py-1 font-mono text-[11px] outline-none w-32"
+                  maxLength={24}
+                />
+                <button
+                  type="button"
+                  onClick={handleAddCustomCat}
+                  className="text-gold text-[11px] font-bold px-1"
+                >
+                  ✓
+                </button>
+              </div>
+            ) : (
+              <button
+                type="button"
+                onClick={() => {
+                  if (!premium) {
+                    setShowPremium(true);
+                    return;
+                  }
+                  setShowAddCat(true);
+                }}
+                className={`px-3 py-1 rounded-full border font-mono text-[11px] transition flex items-center gap-1 ${
+                  premium
+                    ? "border-gold/40 text-gold hover:bg-gold/10"
+                    : "border-white/10 text-muted-foreground bg-secondary"
+                }`}
+                title={premium ? "Adicionar categoria" : "Recurso Premium"}
+              >
+                {premium ? <Plus className="w-3 h-3" /> : <Lock className="w-3 h-3" />}
+                {premium ? "Nova" : "Personalizar"}
+              </button>
+            )}
           </div>
 
           <button
             type="submit"
-            disabled={busy}
+            disabled={busy || (!premium && monthlyCount >= FREE_MONTHLY_TX_LIMIT)}
             className="w-full py-3.5 rounded-xl font-bold text-sm text-primary-foreground tracking-wide transition-all hover:-translate-y-px disabled:opacity-50 mt-2"
-            style={{ background: "var(--gradient-btn-primary)", boxShadow: "var(--shadow-card)" }}
+            style={{
+              background: premium
+                ? "var(--gradient-btn-gold)"
+                : "var(--gradient-btn-primary)",
+              boxShadow: "var(--shadow-card)",
+              color: premium ? "hsl(var(--background))" : undefined,
+            }}
           >
-            Adicionar
+            {!premium && monthlyCount >= FREE_MONTHLY_TX_LIMIT
+              ? "Limite atingido — Upgrade"
+              : "Adicionar"}
           </button>
         </form>
       </section>
