@@ -1,14 +1,15 @@
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
-import { Wallet } from "lucide-react";
+import { Wallet, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 const Login = () => {
   const { loginAnon, loginEmail, signupEmail } = useAuth();
-  // Default mode is "signup" — we want "Criar conta" to be the primary screen.
   const [mode, setMode] = useState<"login" | "signup">("signup");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const submit = async (e: React.FormEvent) => {
@@ -21,9 +22,7 @@ const Login = () => {
     } catch (err: any) {
       const code = err?.code ?? "";
       if (code === "auth/operation-not-allowed") {
-        toast.error(
-          "Login por email não está ativado no Firebase. Vá em Authentication → Sign-in method → ative Email/Password."
-        );
+        toast.error("Login por email não está ativado no Firebase.");
       } else if (code === "auth/email-already-in-use") {
         toast.error("Este email já tem conta. Tente entrar.");
         setMode("login");
@@ -43,12 +42,7 @@ const Login = () => {
       await loginAnon();
       toast.success("Sessão anônima iniciada");
     } catch (err: any) {
-      const code = err?.code ?? "";
-      if (code === "auth/admin-restricted-operation") {
-        toast.error("Login anônimo não está ativado no Firebase.");
-      } else {
-        toast.error(err.message ?? "Erro");
-      }
+      toast.error(err.message ?? "Erro");
     } finally {
       setBusy(false);
     }
@@ -56,9 +50,18 @@ const Login = () => {
 
   return (
     <main className="min-h-screen flex flex-col justify-center px-6 py-10 max-w-md mx-auto relative z-10 animate-fade-in">
+      <Link
+        to="/"
+        className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground transition mb-4 font-mono uppercase tracking-widest"
+      >
+        <ArrowLeft className="w-3.5 h-3.5" /> Voltar
+      </Link>
+
       <div className="flex flex-col items-center mb-10 text-center">
-        <div className="w-[76px] h-[76px] rounded-[22px] flex items-center justify-center text-3xl mb-4 glow-primary"
-          style={{ background: "var(--gradient-primary)" }}>
+        <div
+          className="w-[76px] h-[76px] rounded-[22px] flex items-center justify-center text-3xl mb-4 glow-primary"
+          style={{ background: "var(--gradient-primary)" }}
+        >
           <Wallet className="w-9 h-9 text-primary-foreground" />
         </div>
         <h1 className="text-3xl font-extrabold tracking-tight">
@@ -89,21 +92,34 @@ const Login = () => {
               onChange={(e) => setEmail(e.target.value)}
               placeholder="voce@email.com"
               className="input-styled"
+              autoComplete="email"
             />
           </div>
           <div>
             <label className="font-mono text-[10px] uppercase tracking-widest text-muted-foreground mb-1.5 block">
               Senha
             </label>
-            <input
-              type="password"
-              required
-              minLength={6}
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              placeholder="••••••••"
-              className="input-styled"
-            />
+            <div className="relative">
+              <input
+                type={showPwd ? "text" : "password"}
+                required
+                minLength={6}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                placeholder="••••••••"
+                className="input-styled pr-12"
+                autoComplete={mode === "signup" ? "new-password" : "current-password"}
+              />
+              <button
+                type="button"
+                onClick={() => setShowPwd((s) => !s)}
+                className="absolute right-2 top-1/2 -translate-y-1/2 w-9 h-9 rounded-lg flex items-center justify-center text-muted-foreground hover:text-foreground hover:bg-white/5 transition"
+                aria-label={showPwd ? "Ocultar senha" : "Mostrar senha"}
+                tabIndex={-1}
+              >
+                {showPwd ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
+            </div>
           </div>
 
           <button
@@ -116,7 +132,6 @@ const Login = () => {
           </button>
         </form>
 
-        {/* Toggle between create / login — placed prominently below the primary action */}
         <button
           onClick={() => setMode(mode === "signup" ? "login" : "signup")}
           className="w-full py-3 mt-3 rounded-xl font-bold text-sm bg-secondary border border-white/10 hover:border-primary/40 transition-all"
@@ -126,11 +141,12 @@ const Login = () => {
 
         <div className="flex items-center gap-3 my-3">
           <div className="flex-1 h-px bg-white/10" />
-          <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">ou</span>
+          <span className="font-mono text-[10px] text-muted-foreground uppercase tracking-wider">
+            ou
+          </span>
           <div className="flex-1 h-px bg-white/10" />
         </div>
 
-        {/* Anonymous — smaller, secondary */}
         <button
           onClick={anon}
           disabled={busy}
@@ -140,7 +156,9 @@ const Login = () => {
         </button>
 
         <p className="font-mono text-[10px] text-muted-foreground text-center leading-relaxed mt-3.5">
-          Modo anônimo cria um ID temporário.<br />Seus dados ficam vinculados a este dispositivo.
+          Modo anônimo cria um ID temporário.
+          <br />
+          Seus dados ficam vinculados a este dispositivo.
         </p>
       </section>
     </main>
