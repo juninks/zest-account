@@ -11,6 +11,7 @@ interface Props {
   txs: Tx[];
   premium: boolean;
   onUpgrade: () => void;
+  compact?: boolean;
 }
 
 const COLORS = [
@@ -25,7 +26,7 @@ const COLORS = [
 const fmtBRL = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const CategoryChart = ({ txs, premium, onUpgrade }: Props) => {
+const CategoryChart = ({ txs, premium, onUpgrade, compact = false }: Props) => {
   const data = useMemo(() => {
     const map: Record<string, number> = {};
     txs.filter((t) => t.type === "expense").forEach((t) => {
