@@ -74,6 +74,9 @@ const CategoryChart = ({ txs, premium, onUpgrade, compact = false }: Props) => {
   }
 
   if (data.list.length === 0) {
+    if (compact) {
+      return <p className="text-xs text-muted-foreground text-center py-6">Sem dados</p>;
+    }
     return (
       <section className="surface-card p-5 mb-4">
         <h2 className="text-[13px] font-bold uppercase tracking-widest text-muted-foreground mb-3 flex items-center gap-2">
@@ -96,6 +99,26 @@ const CategoryChart = ({ txs, premium, onUpgrade, compact = false }: Props) => {
     })
     .join(", ");
 
+  if (compact) {
+    return (
+      <div className="flex items-center gap-3">
+        <div className="relative flex-shrink-0">
+          <div className="w-20 h-20 rounded-full" style={{ background: `conic-gradient(${stops})` }} />
+          <div className="absolute inset-2 rounded-full bg-card" />
+        </div>
+        <ul className="flex-1 space-y-1 min-w-0">
+          {data.list.slice(0, 3).map((d) => (
+            <li key={d.name} className="flex items-center gap-1.5 text-[11px]">
+              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ background: d.color }} />
+              <span className="flex-1 truncate text-muted-foreground">{d.name}</span>
+              <span className="font-mono text-[10px] font-bold">{fmtBRL(d.value)}</span>
+            </li>
+          ))}
+        </ul>
+      </div>
+    );
+  }
+
   return (
     <section className="surface-card p-5 mb-4 border-gold/20">
       <h2 className="text-[13px] font-bold uppercase tracking-widest text-muted-foreground mb-4 flex items-center gap-2">
@@ -104,10 +127,7 @@ const CategoryChart = ({ txs, premium, onUpgrade, compact = false }: Props) => {
 
       <div className="flex items-center gap-5">
         <div className="relative flex-shrink-0">
-          <div
-            className="w-28 h-28 rounded-full"
-            style={{ background: `conic-gradient(${stops})` }}
-          />
+          <div className="w-28 h-28 rounded-full" style={{ background: `conic-gradient(${stops})` }} />
           <div className="absolute inset-3 rounded-full bg-card flex flex-col items-center justify-center">
             <p className="font-mono text-[9px] text-muted-foreground uppercase">Total</p>
             <p className="text-xs font-bold">{fmtBRL(data.total)}</p>
@@ -117,14 +137,9 @@ const CategoryChart = ({ txs, premium, onUpgrade, compact = false }: Props) => {
         <ul className="flex-1 space-y-1.5 min-w-0">
           {data.list.slice(0, 5).map((d) => (
             <li key={d.name} className="flex items-center gap-2 text-xs">
-              <span
-                className="w-2.5 h-2.5 rounded-full flex-shrink-0"
-                style={{ background: d.color }}
-              />
+              <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ background: d.color }} />
               <span className="flex-1 truncate">{d.name}</span>
-              <span className="font-mono text-[10px] text-muted-foreground">
-                {d.pct.toFixed(0)}%
-              </span>
+              <span className="font-mono text-[10px] text-muted-foreground">{d.pct.toFixed(0)}%</span>
             </li>
           ))}
         </ul>
