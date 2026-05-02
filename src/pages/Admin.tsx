@@ -76,20 +76,12 @@ const Admin = () => {
       <div className="min-h-screen flex items-center justify-center p-6">
         <div className="surface-card p-6 max-w-sm text-center">
           <Shield className="w-10 h-10 text-gold mx-auto mb-3" />
-          <h1 className="text-lg font-bold mb-2">Acesso restrito</h1>
-          <p className="text-xs text-muted-foreground mb-2">
-            Sua conta não tem permissão de administrador.
-          </p>
-          <p className="font-mono text-[10px] text-muted-foreground mb-4 break-all">
-            UID: {user.uid}
-            <br />
-            Email: {user.email ?? "(sem email)"}
-          </p>
-          <p className="text-[11px] text-muted-foreground mb-4">
-            Adicione seu UID ou e-mail em <code className="text-gold">src/lib/admin.ts</code> para liberar o acesso.
+          <h1 className="text-lg font-bold mb-2">Página não encontrada</h1>
+          <p className="text-xs text-muted-foreground mb-4">
+            A página solicitada não existe ou foi movida.
           </p>
           <Link to="/" className="text-xs text-gold underline">
-            ← Voltar
+            ← Voltar para o início
           </Link>
         </div>
       </div>

@@ -1,0 +1,84 @@
+rules_version = '2';
+
+// =====================================================================
+// Regras de segurança do Firestore — Finanças Pro
+// =====================================================================
+// Como aplicar:
+//  1. Acesse: https://console.firebase.google.com/project/meu-app-financeiro-d3f14/firestore/rules
+//  2. Cole TODO o conteúdo deste arquivo no editor
+//  3. Clique em "Publicar"
+//
+// O que estas regras protegem:
+//  - users/{uid}        : apenas o próprio usuário lê seus dados; só admin altera "premium"
+//  - premium_requests/  : usuário cria seu próprio pedido; só admin lê todos / aprova
+//  - transactions/      : cada usuário só vê e edita as próprias transações
+//  - qualquer outra coleção : negada por padrão
+// =====================================================================
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // E-mails com permissão de admin (mesma lista de src/lib/admin.ts)
+    function isAdmin() {
+      return request.auth != null
+        && request.auth.token.email != null
+        && request.auth.token.email.lower() in [
+          'wildsonaguiar5@gmail.com'
+        ];
+    }
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(uid) {
+      return isSignedIn() && request.auth.uid == uid;
+    }
+
+    // ---------- users/{uid} ----------
+    // PII (email, whatsapp, premium). Só o dono lê. Só admin grava "premium".
+    match /users/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+
+      // Usuário pode criar/atualizar o próprio doc, MAS não pode definir premium=true
+      allow create: if isOwner(uid)
+        && (!('premium' in request.resource.data) || request.resource.data.premium == false);
+
+      allow update: if (
+        isOwner(uid)
+        && (
+          // se premium não muda, ok
+          !('premium' in request.resource.data)
+          || request.resource.data.premium == resource.data.premium
+        )
+      ) || isAdmin();
+
+      allow delete: if isAdmin();
+    }
+
+    // ---------- premium_requests/{uid} ----------
+    // Usuário cria pedido para si próprio; só admin lê todos / aprova.
+    match /premium_requests/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow create: if isOwner(uid)
+        && request.resource.data.status == 'pending'
+        && (!('premium' in request.resource.data) || request.resource.data.premium == false);
+      allow update, delete: if isAdmin();
+    }
+
+    // ---------- transactions/{id} ----------
+    // Cada usuário só acessa as próprias transações (campo uid).
+    match /transactions/{id} {
+      allow read, delete: if isSignedIn() && resource.data.uid == request.auth.uid;
+      allow create: if isSignedIn() && request.resource.data.uid == request.auth.uid;
+      allow update: if isSignedIn()
+        && resource.data.uid == request.auth.uid
+        && request.resource.data.uid == request.auth.uid;
+    }
+
+    // ---------- bloqueio padrão ----------
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}
