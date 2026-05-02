@@ -1,7 +1,8 @@
-import { useMemo } from "react";
+import { useMemo, useRef } from "react";
 import { Timestamp } from "firebase/firestore";
-import { Download, RefreshCw, Crown } from "lucide-react";
+import { Image as ImageIcon, Crown } from "lucide-react";
 import { toast } from "sonner";
+import html2canvas from "html2canvas";
 
 interface Tx {
   type: "income" | "expense";
@@ -64,27 +65,26 @@ const RelatoriosTab = ({ txs, premium, onUpgrade, memberSince }: Props) => {
     return { totalIn, totalOut, balance, monthIn, monthOut, maxIn, maxOut, avgMonth, count: txs.length, cats };
   }, [txs]);
 
-  const exportCSV = () => {
+  const reportRef = useRef<HTMLDivElement>(null);
+
+  const exportImage = async () => {
     if (!premium) return onUpgrade();
-    const rows = [
-      ["Data", "Tipo", "Categoria", "Descrição", "Valor"],
-      ...txs.map((t) => [
-        t.createdAt?.toDate().toLocaleDateString("pt-BR") ?? "",
-        t.type === "income" ? "Receita" : "Despesa",
-        t.category,
-        `"${t.description.replace(/"/g, '""')}"`,
-        t.amount.toFixed(2).replace(".", ","),
-      ]),
-    ];
-    const csv = rows.map((r) => r.join(";")).join("\n");
-    const blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `financas-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-    toast.success("CSV exportado!");
+    if (!reportRef.current) return;
+    toast.loading("Gerando imagem...", { id: "img" });
+    try {
+      const canvas = await html2canvas(reportRef.current, {
+        backgroundColor: "#06070d",
+        scale: 2,
+        useCORS: true,
+      });
+      const link = document.createElement("a");
+      link.download = `financas-${new Date().toISOString().slice(0, 10)}.png`;
+      link.href = canvas.toDataURL("image/png");
+      link.click();
+      toast.success("Imagem salva!", { id: "img" });
+    } catch (e) {
+      toast.error("Erro ao gerar imagem", { id: "img" });
+    }
   };
 
   const monthLabel = new Date().toLocaleDateString("pt-BR", { month: "short", year: "2-digit" });
