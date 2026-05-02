@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Crown, Target, Check, X } from "lucide-react";
+import { Plus, Crown, Target, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   Goal,
@@ -22,11 +22,12 @@ interface Props {
 const fmt = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const QUICK = [50, 100, 500, 1000];
+// Manual deposit input per goal
 
 const MetasTab = ({ uid, premium, onUpgrade }: Props) => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [deposits, setDeposits] = useState<Record<string, string>>({});
 
   // form
   const [name, setName] = useState("");
@@ -67,10 +68,13 @@ const MetasTab = ({ uid, premium, onUpgrade }: Props) => {
     toast.success("Meta criada!");
   };
 
-  const quickAdd = (id: string, value: number) => {
-    addToGoal(uid, id, value);
+  const depositManual = (id: string) => {
+    const v = parseBRL(deposits[id] ?? "");
+    if (!v || v <= 0) return toast.error("Digite um valor válido");
+    addToGoal(uid, id, v);
+    setDeposits((d) => ({ ...d, [id]: "" }));
     reload();
-    toast.success(`+${fmt(value)} adicionado!`);
+    toast.success(`+${fmt(v)} guardado!`);
   };
 
   const remove = (id: string) => {
@@ -233,18 +237,26 @@ const MetasTab = ({ uid, premium, onUpgrade }: Props) => {
                   />
                 </div>
 
-                {/* Quick add buttons */}
+                {/* Manual deposit input */}
                 {!reached && (
-                  <div className="grid grid-cols-4 gap-2">
-                    {QUICK.map((v) => (
-                      <button
-                        key={v}
-                        onClick={() => quickAdd(g.id, v)}
-                        className="py-2 rounded-lg text-[11px] font-bold bg-secondary border border-white/10 hover:border-primary/50 transition"
-                      >
-                        +R${v >= 1000 ? `${(v/1000).toFixed(1)}k` : v}
-                      </button>
-                    ))}
+                  <div className="flex gap-2">
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={deposits[g.id] ?? ""}
+                      onChange={(e) =>
+                        setDeposits((d) => ({ ...d, [g.id]: formatBRLInput(e.target.value) }))
+                      }
+                      placeholder="Quanto você guardou?"
+                      className="input-styled font-mono text-sm flex-1"
+                    />
+                    <button
+                      onClick={() => depositManual(g.id)}
+                      className="px-4 rounded-xl text-sm font-bold text-primary-foreground"
+                      style={{ background: "var(--gradient-btn-primary)" }}
+                    >
+                      Guardar
+                    </button>
                   </div>
                 )}
                 {reached && (

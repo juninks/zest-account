@@ -94,9 +94,9 @@ const Landing = () => {
           </span>
         </div>
 
-        <h1 className="font-display text-5xl sm:text-6xl font-extrabold tracking-tight leading-[1.0] mb-4">
+        <h1 className="text-5xl sm:text-7xl tracking-tight leading-[0.95] mb-5" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600 }}>
           Suas finanças,<br />
-          <span className="gradient-text-blue">organizadas<br />de verdade.</span>
+          <span className="italic gradient-text-blue" style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}>organizadas<br/>de verdade.</span>
         </h1>
 
         <p className="text-base text-muted-foreground max-w-xl mx-auto mb-7 leading-relaxed">
