@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Plus, Trash2, Crown, Target, Check, X } from "lucide-react";
+import { Plus, Crown, Target, Check, X } from "lucide-react";
 import { toast } from "sonner";
 import {
   Goal,
@@ -22,7 +22,7 @@ interface Props {
 const fmt = (n: number) =>
   n.toLocaleString("pt-BR", { style: "currency", currency: "BRL" });
 
-const QUICK = [50, 100, 500, 1000];
+// Manual deposit input per goal
 
 const MetasTab = ({ uid, premium, onUpgrade }: Props) => {
   const [goals, setGoals] = useState<Goal[]>([]);
