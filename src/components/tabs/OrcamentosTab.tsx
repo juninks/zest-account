@@ -4,6 +4,9 @@ import { Crown, Wallet, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { Budget, getBudgets, removeBudget, upsertBudget } from "@/lib/budgets";
 import { formatBRLInput, parseBRL } from "@/lib/format";
+import { getCustomCategories } from "@/lib/customCategories";
+
+const BASE_EXPENSE_CATS = ["Alimentação", "Transporte", "Moradia", "Lazer", "Saúde", "Outros"];
 
 interface Tx {
   type: "income" | "expense";
@@ -75,8 +78,11 @@ const OrcamentosTab = ({ uid, txs, premium, onUpgrade }: Props) => {
     setBudgets(getBudgets(uid));
   };
 
-  // Suggested categories (from existing expenses)
-  const existingCats = Array.from(new Set(Object.keys(monthExpenseByCat)));
+  // ALL available categories: base + custom + ones already used in transactions
+  const usedInTxs = Array.from(new Set(txs.filter(t => t.type === "expense").map(t => t.category)));
+  const customCats = getCustomCategories(uid, "expense");
+  const existingCats = Array.from(new Set([...BASE_EXPENSE_CATS, ...customCats, ...usedInTxs]))
+    .filter(c => !budgets.some(b => b.category === c));
 
   return (
     <div className="space-y-3">
