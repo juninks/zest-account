@@ -80,7 +80,12 @@
   }
 
   h1, h2, h3, h4, .font-display {
-    font-family: 'Syne', sans-serif;
+    font-family: 'Fraunces', 'Instrument Serif', Georgia, serif;
+    letter-spacing: -0.035em;
+    font-weight: 600;
+  }
+  .font-serif-display {
+    font-family: 'Instrument Serif', 'Fraunces', Georgia, serif;
     letter-spacing: -0.02em;
   }
 
