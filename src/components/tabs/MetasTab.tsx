@@ -27,6 +27,7 @@ const fmt = (n: number) =>
 const MetasTab = ({ uid, premium, onUpgrade }: Props) => {
   const [goals, setGoals] = useState<Goal[]>([]);
   const [showForm, setShowForm] = useState(false);
+  const [deposits, setDeposits] = useState<Record<string, string>>({});
 
   // form
   const [name, setName] = useState("");
