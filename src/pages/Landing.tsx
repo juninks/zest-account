@@ -276,14 +276,17 @@ const Landing = () => {
             background: "radial-gradient(ellipse, hsl(var(--primary) / 0.1) 0%, transparent 70%)",
           }}
         />
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3 relative">
+        <h2
+          className="font-extrabold tracking-tight mb-3 relative text-[clamp(1.5rem,5.5vw,2rem)] leading-tight"
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
           Pronto pra organizar tudo?
         </h2>
         <p className="text-sm text-muted-foreground mb-6 relative">
           Crie sua conta agora — leva menos de 30 segundos.
         </p>
         <Link
-          to="/login"
+          to="/login?mode=signup"
           className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-bold text-sm text-primary-foreground transition-all hover:-translate-y-px relative"
           style={{ background: "var(--gradient-btn-primary)", boxShadow: "var(--shadow-card)" }}
         >
