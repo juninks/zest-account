@@ -1,7 +1,9 @@
 import { useMemo, useState } from "react";
 import { Timestamp } from "firebase/firestore";
-import { Sparkles, RefreshCw, Bot, Crown, TrendingUp, TrendingDown, Calendar } from "lucide-react";
+import { Sparkles, RefreshCw, Bot, Crown, TrendingUp, TrendingDown, Calendar, Loader2 } from "lucide-react";
 import { analyzeMonth, SmartTx } from "@/lib/smartAI";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import CategoryChart from "@/components/CategoryChart";
 
 interface Tx {
@@ -25,6 +27,46 @@ const fmt = (n: number) =>
 const PainelTab = ({ txs, premium, onUpgrade }: Props) => {
   const [analysis, setAnalysis] = useState(() => analyzeMonth(txs as SmartTx[]));
   const [aiOpen, setAiOpen] = useState(false);
+  const [aiLoading, setAiLoading] = useState(false);
+
+  const runAIAnalysis = async () => {
+    setAiLoading(true);
+    setAiOpen(true);
+    try {
+      const now = new Date();
+      const month = now.toLocaleDateString("pt-BR", { month: "long", year: "numeric" });
+      const monthTxs = txs
+        .filter((t) => {
+          const d = t.createdAt?.toDate();
+          return d && d.getMonth() === now.getMonth() && d.getFullYear() === now.getFullYear();
+        })
+        .map((t) => ({ type: t.type, amount: t.amount, category: t.category, description: t.description }));
+
+      const { data, error } = await supabase.functions.invoke("ai-analysis", {
+        body: { transactions: monthTxs, month },
+      });
+
+      if (error) throw error;
+      if (data?.error) {
+        toast.error(data.error);
+        setAnalysis(analyzeMonth(txs as SmartTx[]));
+        return;
+      }
+      setAnalysis({
+        summary: data.summary ?? "",
+        insights: data.insights ?? [],
+        warnings: data.warnings ?? [],
+        tips: data.tips ?? [],
+        score: data.score ?? 50,
+      });
+    } catch (e) {
+      console.error(e);
+      toast.error("Falha ao analisar com IA. Usando análise local.");
+      setAnalysis(analyzeMonth(txs as SmartTx[]));
+    } finally {
+      setAiLoading(false);
+    }
+  };
 
   const income = txs.filter((t) => t.type === "income").reduce((s, t) => s + t.amount, 0);
   const expense = txs.filter((t) => t.type === "expense").reduce((s, t) => s + t.amount, 0);
@@ -159,13 +201,14 @@ const PainelTab = ({ txs, premium, onUpgrade }: Props) => {
           <button
             onClick={() => {
               if (!premium) return onUpgrade();
-              setAnalysis(analyzeMonth(txs as SmartTx[]));
-              setAiOpen(true);
+              if (!aiLoading) runAIAnalysis();
             }}
-            className="px-3.5 py-2 rounded-lg text-xs font-bold text-background flex items-center gap-1.5"
+            disabled={aiLoading}
+            className="px-3.5 py-2 rounded-lg text-xs font-bold text-background flex items-center gap-1.5 disabled:opacity-60"
             style={{ background: "var(--gradient-btn-gold)" }}
           >
-            <RefreshCw className="w-3.5 h-3.5" /> Analisar mês
+            {aiLoading ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <RefreshCw className="w-3.5 h-3.5" />}
+            {aiLoading ? "Analisando..." : "Analisar com IA"}
           </button>
         </div>
         {aiOpen && premium && (
