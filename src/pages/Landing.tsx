@@ -155,7 +155,10 @@ const Landing = () => {
           <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-2">
             O que você consegue fazer
           </p>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          <h2
+            className="font-extrabold tracking-tight text-[clamp(1.5rem,5.5vw,2rem)] leading-tight"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
             Tudo que você precisa pra dominar seu dinheiro
           </h2>
         </div>
