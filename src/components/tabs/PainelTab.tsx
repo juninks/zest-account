@@ -213,7 +213,11 @@ const PainelTab = ({ txs, premium, onUpgrade }: Props) => {
         </div>
         {aiOpen && premium && (
           <div className="space-y-3 relative animate-fade-in">
-            <p className="text-sm leading-relaxed">{analysis.summary}</p>
+            {aiLoading ? (
+              <p className="text-sm text-muted-foreground italic">A IA está analisando seu mês...</p>
+            ) : (
+              <p className="text-sm leading-relaxed">{analysis.summary}</p>
+            )}
             <div className="surface-2 rounded-xl p-3">
               <p className="font-mono text-[9px] text-muted-foreground uppercase tracking-widest mb-1">Health Score</p>
               <div className="flex items-center gap-3">
