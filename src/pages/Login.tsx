@@ -7,14 +7,14 @@ import { Wallet, Eye, EyeOff, ArrowLeft } from "lucide-react";
 const Login = () => {
   const { user, loginAnon, loginEmail, signupEmail } = useAuth();
   const [params] = useSearchParams();
-  if (user) return <Navigate to="/app" replace />;
-
   const initialMode = params.get("mode") === "login" ? "login" : "signup";
   const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
   const [busy, setBusy] = useState(false);
+
+  if (user) return <Navigate to="/app" replace />;
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
