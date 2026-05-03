@@ -207,7 +207,10 @@ const Landing = () => {
           <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-2">
             Planos
           </p>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          <h2
+            className="font-extrabold tracking-tight text-[clamp(1.5rem,5.5vw,2rem)] leading-tight"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
             Comece grátis. Vire Premium quando quiser.
           </h2>
         </div>
