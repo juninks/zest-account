@@ -78,7 +78,7 @@ const Landing = () => {
           </span>
         </div>
         <Link
-          to="/login"
+          to="/login?mode=login"
           className="font-mono text-[11px] uppercase tracking-widest px-4 py-2 rounded-full border border-white/10 hover:border-primary/50 transition"
         >
           Entrar
@@ -94,9 +94,17 @@ const Landing = () => {
           </span>
         </div>
 
-        <h1 className="text-5xl sm:text-7xl tracking-tight leading-[0.95] mb-5" style={{ fontFamily: "'Fraunces', serif", fontWeight: 600 }}>
+        <h1
+          className="tracking-tight leading-[0.95] mb-5 text-[clamp(2.75rem,11vw,5.5rem)]"
+          style={{ fontFamily: "'Fraunces', serif", fontWeight: 600 }}
+        >
           Suas finanças,<br />
-          <span className="italic gradient-text-blue" style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}>organizadas<br/>de verdade.</span>
+          <span
+            className="italic gradient-text-blue block mt-1 text-[clamp(2.5rem,10vw,5rem)]"
+            style={{ fontFamily: "'Instrument Serif', serif", fontWeight: 400 }}
+          >
+            organizadas<br />de verdade.
+          </span>
         </h1>
 
         <p className="text-base text-muted-foreground max-w-xl mx-auto mb-7 leading-relaxed">
@@ -106,14 +114,14 @@ const Landing = () => {
 
         <div className="flex flex-col sm:flex-row gap-3 justify-center items-center">
           <Link
-            to="/login"
+            to="/login?mode=signup"
             className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm text-primary-foreground transition-all hover:-translate-y-px"
             style={{ background: "var(--gradient-btn-primary)", boxShadow: "var(--shadow-card)" }}
           >
             Começar grátis <ArrowRight className="w-4 h-4" />
           </Link>
           <Link
-            to="/login"
+            to="/login?mode=login"
             className="inline-flex items-center gap-2 px-6 py-3.5 rounded-xl font-bold text-sm bg-secondary border border-white/10 hover:border-primary/40 transition"
           >
             Já tenho conta
@@ -147,7 +155,10 @@ const Landing = () => {
           <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-2">
             O que você consegue fazer
           </p>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          <h2
+            className="font-extrabold tracking-tight text-[clamp(1.5rem,5.5vw,2rem)] leading-tight"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
             Tudo que você precisa pra dominar seu dinheiro
           </h2>
         </div>
@@ -196,7 +207,10 @@ const Landing = () => {
           <p className="font-mono text-[10px] uppercase tracking-widest text-primary mb-2">
             Planos
           </p>
-          <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight">
+          <h2
+            className="font-extrabold tracking-tight text-[clamp(1.5rem,5.5vw,2rem)] leading-tight"
+            style={{ fontFamily: "'Fraunces', serif" }}
+          >
             Comece grátis. Vire Premium quando quiser.
           </h2>
         </div>
@@ -262,14 +276,17 @@ const Landing = () => {
             background: "radial-gradient(ellipse, hsl(var(--primary) / 0.1) 0%, transparent 70%)",
           }}
         />
-        <h2 className="text-2xl sm:text-3xl font-extrabold tracking-tight mb-3 relative">
+        <h2
+          className="font-extrabold tracking-tight mb-3 relative text-[clamp(1.5rem,5.5vw,2rem)] leading-tight"
+          style={{ fontFamily: "'Fraunces', serif" }}
+        >
           Pronto pra organizar tudo?
         </h2>
         <p className="text-sm text-muted-foreground mb-6 relative">
           Crie sua conta agora — leva menos de 30 segundos.
         </p>
         <Link
-          to="/login"
+          to="/login?mode=signup"
           className="inline-flex items-center gap-2 px-7 py-3.5 rounded-xl font-bold text-sm text-primary-foreground transition-all hover:-translate-y-px relative"
           style={{ background: "var(--gradient-btn-primary)", boxShadow: "var(--shadow-card)" }}
         >

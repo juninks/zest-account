@@ -1,14 +1,16 @@
 import { useState } from "react";
-import { Link, Navigate } from "react-router-dom";
+import { Link, Navigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { toast } from "sonner";
 import { Wallet, Eye, EyeOff, ArrowLeft } from "lucide-react";
 
 const Login = () => {
   const { user, loginAnon, loginEmail, signupEmail } = useAuth();
+  const [params] = useSearchParams();
   if (user) return <Navigate to="/app" replace />;
 
-  const [mode, setMode] = useState<"login" | "signup">("signup");
+  const initialMode = params.get("mode") === "login" ? "login" : "signup";
+  const [mode, setMode] = useState<"login" | "signup">(initialMode);
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPwd, setShowPwd] = useState(false);
